@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const intelligenceRoutes = require('./routes/intelligence');
 const jobRoutes = require('./routes/jobs');
 const housingRoutes = require('./routes/housing');
+const discoveryRoutes = require('./routes/discovery');
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/intelligence', intelligenceRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/housing', housingRoutes);
+app.use('/api/discovery', discoveryRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'active', node: 'LifeBoat_Alpha_1' });
