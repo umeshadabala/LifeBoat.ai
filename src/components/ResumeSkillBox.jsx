@@ -3,13 +3,16 @@ import { Target, BrainCircuit, Activity, Zap, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { extractIntelligence } from '../services/Parser';
 
-const ResumeSkillBox = ({ resumeText = "" }) => {
-    const metrics = useMemo(() => extractIntelligence(resumeText), [resumeText]);
+const ResumeSkillBox = ({ resumeText = "", externalIntelligence = null }) => {
+    // Use backend intelligence if available, otherwise fallback to local heuristics
+    const metrics = useMemo(() => {
+        return externalIntelligence || extractIntelligence(resumeText);
+    }, [resumeText, externalIntelligence]);
 
     if (!metrics.skills || metrics.skills.length === 0) {
         return (
             <div className="lb-card" style={{ border: '1px dashed #1e293b', background: 'transparent' }}>
-                <p className="text-center" style={{ color: '#64748b', fontStyle: 'italic' }}>Awaiting neural uplink... Deploy agents to begin extraction.</p>
+                <p className="text-center" style={{ color: '#64748b', fontStyle: 'italic' }}>Waiting for intelligence uplink...</p>
             </div>
         );
     }
@@ -26,41 +29,25 @@ const ResumeSkillBox = ({ resumeText = "" }) => {
                     <div className="flex" style={{ gap: '12px', alignItems: 'center' }}>
                         <span className="lb-badge accent" style={{ background: 'rgba(34, 211, 238, 0.1)' }}>Resilience: {metrics.resilience}%</span>
                         <div className="flex items-center" style={{ gap: '6px', color: '#10b981', fontSize: '10px', fontWeight: '900' }}>
-                            <TrendingUp size={14} /> STRENGTH: {metrics.strengthLabel}
+                            <TrendingUp size={14} /> {externalIntelligence ? 'LLM_SOURCE' : 'LOCAL_HEURISTICS'}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                    {metrics.skills.map((skill, index) => (
-                        <motion.div
-                            key={`${skill.name}-${index}`}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05 }}
-                            style={{ backgroundColor: 'rgba(255,255,255,0.01)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}
-                        >
-                            <div className="flex justify-between" style={{ marginBottom: '16px', alignItems: 'center' }}>
-                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>{skill.name}</span>
-                                <span style={{ fontSize: '11px', color: '#22d3ee', fontWeight: '900' }}>{skill.level}%</span>
-                            </div>
-                            <div style={{ width: '100%', height: '6px', backgroundColor: '#1e293b', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
-                                <motion.div
-                                    style={{ height: '100%', backgroundColor: '#22d3ee', boxShadow: '0 0 15px rgba(34, 211, 238, 0.4)' }}
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${skill.level}%` }}
-                                    transition={{ duration: 1.5 }}
-                                />
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <p className="lb-label" style={{ fontSize: '8px' }}>MAPPED_DATA_STREAM</p>
-                                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>{skill.strength}</span>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+            <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                {metrics.skills.map((skill, index) => (
+                    <motion.div key={index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.05 }} className="lb-card" style={{ padding: '24px', background: 'rgba(255,255,255,0.01)' }}>
+                        <div className="flex justify-between" style={{ marginBottom: '12px' }}>
+                            <span style={{ fontWeight: '800' }}>{skill.name}</span>
+                            <span style={{ color: '#22d3ee' }}>{skill.level}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: '#1e293b', borderRadius: '2px', overflow: 'hidden' }}>
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${skill.level}%` }} style={{ height: '100%', background: '#22d3ee' }} />
+                        </div>
+                        <p className="lb-label" style={{ marginTop: '8px', fontSize: '8px' }}>{skill.strength}</p>
+                    </motion.div>
+                ))}
             </div>
         </div>
     );

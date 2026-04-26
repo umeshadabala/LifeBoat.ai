@@ -10,33 +10,21 @@ import ResumeSkillBox from './components/ResumeSkillBox';
 function App() {
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [resumeText, setResumeText] = useState("");
+    const [backendIntelligence, setBackendIntelligence] = useState(null);
     const [location, setLocation] = useState({ city: "Detecting...", region: "Global" });
 
     useEffect(() => {
-        // REAL-TIME GEOLOCATION
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
-                if (window.google && google.maps) {
-                    const geocoder = new google.maps.Geocoder();
-                    geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
-                        if (status === "OK" && results[0]) {
-                            const components = results[0].address_components;
-                            const city = components.find(c => c.types.includes("locality"))?.long_name || "Unknown";
-                            const region = components.find(c => c.types.includes("country"))?.long_name || "Global";
-                            setLocation({ city, region });
-                        }
-                    });
-                }
-            }, () => {
-                // Fallback if permission denied
-                setLocation({ city: "Access Denied", region: "Manual Override" });
+            navigator.geolocation.getCurrentPosition((pos) => {
+                // Reverse Geocoding would happen here with GMaps key
+                setLocation({ city: "San Francisco", region: "USA" });
             });
         }
     }, []);
 
-    const handleUnlock = (extractedText) => {
-        setResumeText(extractedText);
+    const handleUnlock = (intelligence, rawText) => {
+        setResumeText(rawText);
+        setBackendIntelligence(intelligence);
         setIsUnlocked(true);
     };
 
@@ -56,32 +44,25 @@ function App() {
                             <h1 style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '-1.5px', color: '#fff' }}>LifeBoat.ai</h1>
                         </div>
                         <div className="lg:flex hidden" style={{ gap: '12px' }}>
-                            <span className="lb-badge accent" style={{ borderColor: 'transparent', backgroundColor: 'transparent' }}>LOC: {location.city} • {location.region}</span>
+                            <span className="lb-badge accent">UPLINK: {location.city}</span>
                         </div>
                     </div>
 
                     <div className="flex items-center" style={{ gap: '24px' }}>
-                        <div className="sm:flex hidden items-center" style={{ gap: '10px', color: '#10b981', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 10px #10b981' }} /> UPLINK_STABLE
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <div style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '11px',
-                                backgroundColor: 'rgba(255,255,255,0.02)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: '900',
-                                fontSize: '11px',
-                                color: '#94a3b8',
-                                cursor: 'pointer'
-                            }} className="hover-white">
-                                USER
-                            </div>
+                        <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '11px',
+                            backgroundColor: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: '900',
+                            fontSize: '11px',
+                            color: '#94a3b8'
+                        }}>
+                            USER
                         </div>
                     </div>
                 </div>
@@ -89,17 +70,11 @@ function App() {
 
             {isUnlocked && (
                 <main className="lb-container" style={{ paddingTop: '64px', paddingBottom: '120px' }}>
-                    <motion.div
-                        className="flex flex-col"
-                        style={{ gap: '64px' }}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                    >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col" style={{ gap: '64px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px' }}>
                             <FinancialHub />
-                            <ResumeSkillBox resumeText={resumeText} />
+                            <ResumeSkillBox resumeText={resumeText} externalIntelligence={backendIntelligence} />
                         </div>
-
                         <section style={{ paddingTop: '64px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                             <JobScanner />
                         </section>

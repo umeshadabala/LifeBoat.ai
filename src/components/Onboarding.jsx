@@ -16,20 +16,35 @@ const Onboarding = ({ onComplete }) => {
     const handleFile = async (file) => {
         setStep('scanning');
 
-        // START AGENT PIPELINE
+        // 1. START AGENT PIPELINE (Visual Only)
         for (const agent of agents) {
             setActiveAgent(agent);
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 1000));
         }
 
-        // REAL-TIME TEXT EXTRACTION (Basic FileReader)
+        // 2. REAL-TIME TEXT EXTRACTION (Basic FileReader)
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const text = e.target.result;
-            // If file is empty, use a smart default, otherwise use the actual text
-            const extractedText = text.length > 10 ? text : "Simulated senior experience node detected.";
-            setStep('ready');
-            setTimeout(() => onComplete(extractedText), 1000);
+
+            try {
+                // UPLINK TO NODE.JS BACKEND
+                const response = await fetch('http://localhost:5000/api/intelligence/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text || "Simulated Resume Node" })
+                });
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                setStep('ready');
+                setTimeout(() => onComplete(data, text), 1000);
+            } catch (err) {
+                console.warn("Backend link failed. Falling back to local engine.", err);
+                setStep('ready');
+                setTimeout(() => onComplete(null, text), 1000);
+            }
         };
         reader.readAsText(file);
     };
