@@ -54,8 +54,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
+if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`[LifeBoat_Backend] Strategic Uplink Active on port ${PORT}`);
     });
 }
