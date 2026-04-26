@@ -24,6 +24,12 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'active', node: 'LifeBoat_Alpha_1' });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
+
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`[LifeBoat_Backend] Strategic Uplink Active on port ${PORT}`);
