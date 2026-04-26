@@ -12,7 +12,7 @@ const REGIONS = [
     { label: 'Australia', value: 'Australia' },
 ];
 
-const JobScanner = ({ skills = [], primaryRole = '', candidateProfile = null, resumeText = '' }) => {
+const JobScanner = ({ skills = [], primaryRole = '' }) => {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [region, setRegion] = useState('India');
@@ -20,53 +20,6 @@ const JobScanner = ({ skills = [], primaryRole = '', candidateProfile = null, re
     const [hasLoaded, setHasLoaded] = useState(false);
     const [visibleCount, setVisibleCount] = useState(9);
     const [error, setError] = useState('');
-    const [generatingResume, setGeneratingResume] = useState(null);
-
-    const handleGenerateResume = async (job) => {
-        if (!candidateProfile) {
-            alert('Please upload a resume first to use the ATS builder.');
-            return;
-        }
-        
-        setGeneratingResume(job.id);
-        try {
-            const host = window.location.hostname;
-            const res = await fetch(`http://${host}:5000/api/intelligence/resume-builder`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    resumeText,
-                    candidateProfile,
-                    jobTitle: job.title,
-                    jobCompany: job.company,
-                    jobDescription: job.description,
-                    jobUrl: job.url
-                })
-            });
-            
-            if (!res.ok) throw new Error('Failed to generate resume');
-            const data = await res.json();
-            
-            // Send the HTML back to server to serve it on a unique URL
-            const serveRes = await fetch(`http://${host}:5000/api/intelligence/resume-serve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ html: data.resumeHTML, id: job.id })
-            });
-            
-            if (!serveRes.ok) throw new Error('Failed to serve resume HTML');
-            const serveData = await serveRes.json();
-            
-            // Open the generated resume page
-            window.open(`http://${host}:5000${serveData.url}`, '_blank');
-            
-        } catch (err) {
-            console.error('Resume builder error:', err);
-            alert('Failed to generate ATS resume. Please try again.');
-        } finally {
-            setGeneratingResume(null);
-        }
-    };
 
     const fetchJobs = useCallback(async (overrideSkills = null, overrideRegion = null) => {
         setLoading(true);
@@ -318,14 +271,6 @@ const JobScanner = ({ skills = [], primaryRole = '', candidateProfile = null, re
                                             color: '#334155', textTransform: 'uppercase'
                                         }}>{job.source?.replace('_', ' ')}</span>
                                         <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleGenerateResume(job)}
-                                                disabled={generatingResume === job.id}
-                                                className="lb-btn"
-                                                style={{ height: 36, padding: '0 12px', fontSize: 12, background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }}
-                                            >
-                                                {generatingResume === job.id ? 'Building...' : 'ATS Resume'}
-                                            </button>
                                             <a
                                                 href={job.url}
                                                 target="_blank"

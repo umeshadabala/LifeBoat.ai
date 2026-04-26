@@ -136,8 +136,6 @@ function App() {
                             <JobScanner
                                 skills={skillsForJobs}
                                 primaryRole={intelligence?.primary_role}
-                                candidateProfile={intelligence}
-                                resumeText={resumeText}
                             />
                             <div style={{ position: 'sticky', top: 96 }}>
                                 <HousingFinder location={location} />
