@@ -68,19 +68,23 @@ function App() {
                 </div>
             </nav>
 
-            {isUnlocked && (
-                <main className="lb-container" style={{ paddingTop: '64px', paddingBottom: '120px' }}>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col" style={{ gap: '64px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px' }}>
-                            <FinancialHub />
-                            <ResumeSkillBox resumeText={resumeText} externalIntelligence={backendIntelligence} />
-                        </div>
-                        <section style={{ paddingTop: '64px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <main className="lb-container" style={{ paddingTop: '64px', paddingBottom: '120px' }}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col" style={{ gap: '64px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px' }}>
+                        <FinancialHub />
+                        <ResumeSkillBox resumeText={resumeText} externalIntelligence={backendIntelligence} />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '48px', alignItems: 'start' }}>
+                        <section>
                             <JobScanner />
                         </section>
-                    </motion.div>
-                </main>
-            )}
+                        <aside>
+                            <HousingFinder location={location} />
+                        </aside>
+                    </div>
+                </motion.div>
+            </main>
         </div>
     );
 }

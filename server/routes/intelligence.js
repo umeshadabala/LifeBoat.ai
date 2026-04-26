@@ -8,11 +8,7 @@ router.post('/parse', async (req, res) => {
     const MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 
     if (!API_KEY) {
-        return res.status(401).json({ error: "OPENROUTER_API_KEY Missing in backend uplink." });
-    }
-
-    if (!text) {
-        return res.status(400).json({ error: "No neural input detected." });
+        return res.status(401).json({ error: "OPENROUTER_API_KEY Missing." });
     }
 
     try {
@@ -21,24 +17,29 @@ router.post('/parse', async (req, res) => {
             messages: [
                 {
                     role: "system",
-                    content: "You are a specialized career intelligence agent. Return ONLY valid JSON."
+                    content: "You are an Elite Career Intelligence Analyst. Your task is to extract high-leverage technical skills from resume text. DO NOT include generic words or PDF metadata. Return ONLY valid JSON."
                 },
                 {
                     role: "user",
-                    content: `Analyze this resume text and return a valid JSON object in this PRECISE format:
+                    content: `Perform a deep semantic audit of this resume. Extract the top 8 actual technical skills (languages, frameworks, tools). 
+          Determine skill level (0-100) based on frequency and complexity of projects mentioned.
+          Identify seniority (Elite/Advanced/Steady).
+          Calculate a total Career Resilience score (0-100).
+          
+          Return in this JSON format:
           {
-            "skills": [{"name": "SkillName", "level": 0-100, "strength": "Elite/Advanced/Steady"}],
-            "resilience": 0-100,
-            "strengthLabel": "ELITE/TACTICAL/OPTIMAL"
+            "skills": [{"name": "Skill", "level": 85, "strength": "Elite"}],
+            "resilience": 88,
+            "strengthLabel": "ELITE"
           }
-          Extract the top 8 technical skills. Calculate resilience based on experience depth and complexity.
+          
           Text: "${text.substring(0, 4000)}"`
                 }
             ]
         }, {
             headers: {
                 'Authorization': `Bearer ${API_KEY}`,
-                'HTTP-Referer': 'http://localhost:3000', // Update this for production
+                'HTTP-Referer': 'http://localhost:3000',
                 'X-Title': 'LifeBoat.ai',
                 'Content-Type': 'application/json'
             }
@@ -46,11 +47,10 @@ router.post('/parse', async (req, res) => {
 
         const content = response.data.choices[0].message.content;
         const jsonString = content.replace(/```json|```/g, "").trim();
-
         res.json(JSON.parse(jsonString));
     } catch (error) {
-        console.error("OpenRouter link failure:", error.response?.data || error.message);
-        res.status(500).json({ error: "OpenRouter agent failed. Verify keys and model availability." });
+        console.error("Intelligence failure:", error.message);
+        res.status(500).json({ error: "Intelligence Uplink Failure." });
     }
 });
 
