@@ -28,8 +28,9 @@ const Onboarding = ({ onComplete }) => {
             const text = e.target.result;
 
             try {
-                // UPLINK TO NODE.JS BACKEND
-                const response = await fetch('http://localhost:5000/api/intelligence/parse', {
+                // DYNAMIC HOST DETECTION FOR BACKEND
+                const host = window.location.hostname;
+                const response = await fetch(`http://${host}:5000/api/intelligence/parse`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: text || "Simulated Resume Node" })
@@ -64,10 +65,10 @@ const Onboarding = ({ onComplete }) => {
 
     return (
         <div className="fixed inset-0 z-max bg-[#020617] flex items-center justify-center p-6">
-            <div className="absolute inset-0 opacity-10" style={{ overflow: 'hidden' }}>
-                <div className="absolute rounded-full blur-xl" style={{ top: '20%', left: '10%', width: '400px', height: '400px', backgroundColor: '#22d3ee' }} />
-                <div className="absolute rounded-full blur-xl" style={{ bottom: '20%', right: '10%', width: '400px', height: '400px', backgroundColor: '#10b981' }} />
-            </div>
+            <div className="absolute inset-0 opacity-5" style={{
+                backgroundImage: 'radial-gradient(circle at 2px 2px, #1e293b 1px, transparent 0)',
+                backgroundSize: '40px 40px'
+            }} />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
