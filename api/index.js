@@ -33,7 +33,7 @@ const __dirname = path.dirname(__filename);
 
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
     app.use(express.static(path.join(__dirname, '../dist')));
-    app.get('*', (req, res) => {
+    app.get('*path', (req, res) => {
         // Only serve index.html for non-API routes
         if (!req.path.startsWith('/api/')) {
             res.sendFile(path.join(__dirname, '../dist/index.html'));
