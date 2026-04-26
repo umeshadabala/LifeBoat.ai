@@ -4,8 +4,8 @@ const router = express.Router();
 
 router.get('/discovery', async (req, res) => {
     const { query, region, skills } = req.query;
-    const APP_ID = process.env.VITE_ADZUNA_APP_ID;
-    const API_KEY = process.env.VITE_ADZUNA_API_KEY;
+    const APP_ID = process.env.VITE_ADZUNA_APP_ID || process.env.ADZUNA_APP_ID;
+    const API_KEY = process.env.VITE_ADZUNA_API_KEY || process.env.ADZUNA_API_KEY;
 
     // Build a smart search query from skills array + query string
     let searchQuery = query || 'Software Engineer';

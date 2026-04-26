@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get('/scrape', async (req, res) => {
     const { query, location } = req.query;
-    const API_KEY = process.env.VITE_SERPER_API_KEY;
+    const API_KEY = process.env.SERPER_API_KEY || process.env.VITE_SERPER_API_KEY;
 
     if (!API_KEY) {
         return res.status(401).json({ error: "SERPER_API_KEY Missing in backend uplink." });
