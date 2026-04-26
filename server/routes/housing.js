@@ -1,32 +1,55 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 
 router.get('/discovery', async (req, res) => {
-    const { city, region } = req.query;
+    const { city, region, budget } = req.query;
+    const SERPER_KEY = process.env.VITE_SERPER_API_KEY;
 
-    // Real-world logic would use a housing API (Zillow, Roomies, etc.)
-    // Here we use a location-aware dynamic generator for PGs, Dorms, and Rooms.
-    const types = ['Executive PG', 'Student Dorm', 'Co-living Space', 'Private Room', 'Studio Apartment'];
-    const hubs = ['Silicon Junction', 'Metro Central', 'Tech Park North', 'University Quarter'];
+    try {
+        let results = [];
 
-    const results = Array.from({ length: 12 }).map((_, i) => {
-        const type = types[i % types.length];
-        const hub = hubs[i % hubs.length];
-        const basePrice = region === 'India' ? 12000 : 800;
-        const currency = region === 'India' ? '₹' : '$';
+        if (SERPER_KEY && city) {
+            const query = `affordable PG room dorm near ${city} under ${budget || 'any price'}`;
+            const response = await axios.post('https://google.serper.dev/search', {
+                q: query,
+                num: 10
+            }, {
+                headers: { 'X-API-KEY': SERPER_KEY }
+            });
 
-        return {
-            id: 5000 + i,
-            name: `${type} in ${hub}`,
-            location: `${city || 'Detected Hub'}, ${region || 'Global'}`,
-            price: `${currency}${basePrice + (i * 1000)}/mo`,
-            rating: (4.2 + (Math.random() * 0.8)).toFixed(1),
-            tags: ['Verified', 'High-Speed WiFi', 'Secure'],
-            url: region === 'India' ? 'https://www.magicbricks.com' : 'https://www.zillow.com'
-        };
-    });
+            results = response.data.organic.map((item, index) => ({
+                id: 7000 + index,
+                name: item.title.split('|')[0].trim(),
+                location: city,
+                price: "Check Link", // Dynamic price extraction from snippet is complex, we provide link
+                rating: "4.5",
+                url: item.link,
+                source: "SERPER_REAL_TIME"
+            }));
+        }
 
-    res.json(results);
+        // Fallback if no Serper key or failed
+        if (results.length === 0) {
+            const isIndia = region === 'India' || city === 'Bangalore';
+            const currency = isIndia ? '₹' : '$';
+            const base = isIndia ? 8000 : 600;
+
+            results = Array.from({ length: 12 }).map((_, i) => ({
+                id: 8000 + i,
+                name: `Strategic Haven ${i + 1}`,
+                location: city || "Global Hub",
+                price: `${currency}${base + (i * 1000)}/mo`,
+                rating: "4.7",
+                url: "https://www.google.com/maps/search/PG+near+me",
+                source: "REGIONAL_FALLBACK"
+            }));
+        }
+
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ error: "HOUSING_DISCOVERY_OFFLINE" });
+    }
 });
 
 module.exports = router;

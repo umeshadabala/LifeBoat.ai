@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, ShieldCheck, Zap, Globe, MapPin, Power } from 'lucide-react';
+import { MapPin, User, Activity, Globe, Power, Terminal } from 'lucide-react';
 import Onboarding from './components/Onboarding';
 import FinancialHub from './components/FinancialHub';
 import JobScanner from './components/JobScanner';
@@ -10,8 +10,8 @@ import ResumeSkillBox from './components/ResumeSkillBox';
 function App() {
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [resumeText, setResumeText] = useState("");
-    const [backendIntelligence, setBackendIntelligence] = useState(null);
-    const [location, setLocation] = useState({ city: "Detecting Nodes...", region: "Global" });
+    const [intelligence, setIntelligence] = useState(null);
+    const [location, setLocation] = useState({ city: "DETECTING", region: "GLOBAL" });
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -27,14 +27,14 @@ function App() {
                     setLocation({ city: "Bangalore", region: "India" });
                 }
             }, () => {
-                setLocation({ city: "Access Required", region: "Global" });
+                setLocation({ city: "Bangalore", region: "India" });
             });
         }
     }, []);
 
-    const handleUnlock = (intelligence, rawText) => {
+    const handleUnlock = (data, rawText) => {
         setResumeText(rawText);
-        setBackendIntelligence(intelligence);
+        setIntelligence(data);
         setIsUnlocked(true);
     };
 
@@ -48,29 +48,33 @@ function App() {
 
             <nav className="lb-header">
                 <div className="lb-container flex items-center justify-between">
-                    <div className="flex items-center" style={{ gap: '40px' }}>
+                    <div className="flex items-center" style={{ gap: '48px' }}>
                         <div className="flex items-center" style={{ gap: '16px' }}>
-                            <div style={{ width: '42px', height: '42px', border: '2px solid #22d3ee', borderRadius: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22d3ee', fontWeight: '900', fontSize: '20px', boxShadow: '0 0 15px rgba(34, 211, 238, 0.2)' }}>L</div>
-                            <h1 style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '-1.5px', color: '#fff', fontFamily: 'Outfit' }}>LIFEBOAT.AI</h1>
+                            <div style={{ width: '42px', height: '42px', border: '2px solid #22d3ee', borderRadius: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22d3ee', fontWeight: '900', fontSize: '20px' }}>L</div>
+                            <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1.5px', color: '#fff', fontFamily: 'Outfit' }}>LIFEBOAT.AI</h1>
                         </div>
-                        <div className="lg:flex hidden" style={{ gap: '12px' }}>
-                            <span className="lb-badge accent" style={{ background: 'rgba(34, 211, 238, 0.05)', borderColor: 'rgba(34, 211, 238, 0.1)' }}>
-                                <MapPin size={12} style={{ marginRight: '6px' }} /> {location.city.toUpperCase()} UPLINK
-                            </span>
-                        </div>
+                        {isUnlocked && (
+                            <div className="flex items-center" style={{ gap: '12px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                                <span className="lb-badge accent" style={{ background: 'transparent', borderColor: 'rgba(34, 211, 238, 0.1)' }}>
+                                    UPLINK: {location.city.toUpperCase()}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex items-center" style={{ gap: '32px' }}>
-                        <div className="sm:flex hidden items-center" style={{ gap: '12px', fontSize: '10px', fontWeight: '900', color: '#10b981', letterSpacing: '1px' }}>
-                            <Activity size={14} /> STATUS: OPERATIONAL
-                        </div>
-                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.05)' }} />
-                        <div className="flex items-center" style={{ gap: '10px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b' }}>POWERED BY OPENROUTER</span>
-                            <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(34, 211, 238, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22d3ee' }}>
-                                <Power size={18} />
+                    <div className="flex items-center" style={{ gap: '40px' }}>
+                        {isUnlocked && intelligence && (
+                            <div className="flex items-center" style={{ gap: '12px' }}>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p className="lb-label" style={{ fontSize: '9px', marginBottom: '2px' }}>OPERATIONAL_NODE</p>
+                                    <p style={{ fontSize: '14px', fontWeight: '900', color: '#fff' }}>{intelligence.name.toUpperCase()}</p>
+                                </div>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                    <User size={20} />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -78,12 +82,12 @@ function App() {
             {isUnlocked && (
                 <main className="lb-container" style={{ paddingBottom: '120px' }}>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col" style={{ gap: '48px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px' }}>
                             <FinancialHub />
-                            <ResumeSkillBox resumeText={resumeText} externalIntelligence={backendIntelligence} />
+                            <ResumeSkillBox resumeText={resumeText} externalIntelligence={intelligence} />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px', alignItems: 'start' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '64px', alignItems: 'start' }}>
                             <section>
                                 <JobScanner />
                             </section>
