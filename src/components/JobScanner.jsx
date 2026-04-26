@@ -25,7 +25,6 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
         setLoading(true);
         setError('');
         try {
-            const host = window.location.hostname;
             const targetSkills = overrideSkills ?? skills;
             const targetRegion = overrideRegion ?? region;
 
@@ -41,7 +40,7 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
                 queryParam = `&query=${encodeURIComponent(q)}`;
             }
 
-            const url = `http://${host}:5000/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
+            const url = `/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Server error ${res.status}`);
             const data = await res.json();

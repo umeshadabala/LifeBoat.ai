@@ -38,8 +38,7 @@ const Onboarding = ({ onComplete }) => {
         if (userName.trim()) formData.append('name', userName.trim());
 
         try {
-            const host = window.location.hostname;
-            const response = await fetch(`http://${host}:5000/api/intelligence/parse`, {
+            const response = await fetch(`/api/intelligence/parse`, {
                 method: 'POST',
                 body: formData
             });

@@ -11,8 +11,7 @@ const HousingFinder = ({ location = { city: 'Bangalore', region: 'India' } }) =>
         setLoading(true);
         setError('');
         try {
-            const host = window.location.hostname;
-            const url = `http://${host}:5000/api/housing/discovery?city=${encodeURIComponent(location.city)}&region=${encodeURIComponent(location.region)}&budget=20000`;
+            const url = `/api/housing/discovery?city=${encodeURIComponent(location.city)}&region=${encodeURIComponent(location.region)}&budget=20000`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();
