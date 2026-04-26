@@ -38,8 +38,12 @@ const Onboarding = ({ onComplete }) => {
         if (userName.trim()) formData.append('name', userName.trim());
 
         try {
-            const API_BASE = import.meta.env.VITE_API_URL || '';
-            const response = await fetch(`${API_BASE.replace(/\/$/, '')}/api/intelligence/parse`, {
+            const API_BASE = import.meta.env.VITE_API_URL;
+            const baseUrl = API_BASE ? API_BASE.replace(/\/$/, '') : '';
+            const url = `${baseUrl}/api/intelligence/parse`;
+            
+            console.log(`[LifeBoat_Debug] Parsing resume at: ${url}`);
+            const response = await fetch(url, {
                 method: 'POST',
                 body: formData
             });

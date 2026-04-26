@@ -40,8 +40,11 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
                 queryParam = `&query=${encodeURIComponent(q)}`;
             }
 
-            const API_BASE = import.meta.env.VITE_API_URL || '';
-            const url = `${API_BASE.replace(/\/$/, '')}/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
+            const API_BASE = import.meta.env.VITE_API_URL;
+            const baseUrl = API_BASE ? API_BASE.replace(/\/$/, '') : '';
+            const url = `${baseUrl}/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
+            
+            console.log(`[LifeBoat_Debug] Fetching jobs from: ${url}`);
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Server error ${res.status}`);
             const data = await res.json();
