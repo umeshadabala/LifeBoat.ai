@@ -9,7 +9,7 @@ const ResumeSkillBox = ({ resumeText = "" }) => {
     if (!metrics.skills || metrics.skills.length === 0) {
         return (
             <div className="lb-card" style={{ border: '1px dashed #1e293b', background: 'transparent' }}>
-                <p className="text-center" style={{ color: '#64748b', fontStyle: 'italic' }}>Waiting for neural uplink... Upload resume to initialize mapping.</p>
+                <p className="text-center" style={{ color: '#64748b', fontStyle: 'italic' }}>Awaiting neural uplink... Deploy agents to begin extraction.</p>
             </div>
         );
     }
@@ -30,17 +30,13 @@ const ResumeSkillBox = ({ resumeText = "" }) => {
                         </div>
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <p className="lb-label">Credits Utilized</p>
-                    <p style={{ color: '#22d3ee', fontWeight: '900', fontSize: '18px' }}>{metrics.credits}/1000</p>
-                </div>
             </div>
 
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                     {metrics.skills.map((skill, index) => (
                         <motion.div
-                            key={skill.name}
+                            key={`${skill.name}-${index}`}
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.05 }}
@@ -52,27 +48,18 @@ const ResumeSkillBox = ({ resumeText = "" }) => {
                             </div>
                             <div style={{ width: '100%', height: '6px', backgroundColor: '#1e293b', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
                                 <motion.div
-                                    style={{ height: '100%', backgroundColor: '#22d3ee', boxShadow: '0 0 15px rgba(34, 211, 238, 0.5)' }}
+                                    style={{ height: '100%', backgroundColor: '#22d3ee', boxShadow: '0 0 15px rgba(34, 211, 238, 0.4)' }}
                                     initial={{ width: 0 }}
                                     animate={{ width: `${skill.level}%` }}
-                                    transition={{ duration: 1.5, type: 'spring', bounce: 0 }}
+                                    transition={{ duration: 1.5 }}
                                 />
                             </div>
                             <div className="flex justify-between items-center">
-                                <p className="lb-label" style={{ fontSize: '8px', letterSpacing: '1px' }}>ACCURACY: HIGH</p>
+                                <p className="lb-label" style={{ fontSize: '8px' }}>MAPPED_DATA_STREAM</p>
                                 <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>{skill.strength}</span>
                             </div>
                         </motion.div>
                     ))}
-                </div>
-
-                <div style={{ padding: '24px', borderRadius: '20px', backgroundColor: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.1)', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                        <Activity size={20} />
-                    </div>
-                    <div>
-                        <p style={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}>Uplink complete. Mapping high-leverage roles to node data.</p>
-                    </div>
                 </div>
             </div>
         </div>

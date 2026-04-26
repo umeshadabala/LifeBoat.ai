@@ -13,11 +13,25 @@ function App() {
     const [location, setLocation] = useState({ city: "Detecting...", region: "Global" });
 
     useEffect(() => {
-        // GMaps IP-based location detection (Simulation)
-        if (window.google) {
-            const geocoder = new google.maps.Geocoder();
-            // In production, you'd use navigator.geolocation
-            setLocation({ city: "San Francisco", region: "USA" });
+        // REAL-TIME GEOLOCATION
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                if (window.google && google.maps) {
+                    const geocoder = new google.maps.Geocoder();
+                    geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+                        if (status === "OK" && results[0]) {
+                            const components = results[0].address_components;
+                            const city = components.find(c => c.types.includes("locality"))?.long_name || "Unknown";
+                            const region = components.find(c => c.types.includes("country"))?.long_name || "Global";
+                            setLocation({ city, region });
+                        }
+                    });
+                }
+            }, () => {
+                // Fallback if permission denied
+                setLocation({ city: "Access Denied", region: "Manual Override" });
+            });
         }
     }, []);
 

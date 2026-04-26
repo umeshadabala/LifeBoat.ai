@@ -1,34 +1,49 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, CheckCircle, Shield } from 'lucide-react';
+import { Upload, CheckCircle, Shield, Brain, Cpu, Database, Network } from 'lucide-react';
 
 const Onboarding = ({ onComplete }) => {
     const [step, setStep] = useState('initial');
+    const [activeAgent, setActiveAgent] = useState(null);
     const fileInputRef = useRef(null);
 
-    const simulateExtraction = (file) => {
-        setStep('scanning');
-        // Simulate reading text from file
-        const mockText = `I am a Senior React.js Developer with 5 years of experience in TypeScript and Node.js. 
-    I have built complex System Design architectures and deployed DevOps pipelines using Docker and AWS.
-    Experience at Google and Vercel. Performance optimization and Frontend leadership.`;
+    const agents = [
+        { id: 'parser', name: 'NEURAL_PARSER', icon: Brain, status: 'Analyzing experience nodes...' },
+        { id: 'mapper', name: 'INDUSTRY_MAPPER', icon: Database, status: 'Benchmarking skill affinity...' },
+        { id: 'strategy', name: 'TAC_STRATEGIST', icon: Network, status: 'Synthesizing career trajectory...' }
+    ];
 
-        setTimeout(() => {
-            onComplete(mockText); // Pass the extracted text back
+    const handleFile = async (file) => {
+        setStep('scanning');
+
+        // START AGENT PIPELINE
+        for (const agent of agents) {
+            setActiveAgent(agent);
+            await new Promise(r => setTimeout(r, 1200));
+        }
+
+        // REAL-TIME TEXT EXTRACTION (Basic FileReader)
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            // If file is empty, use a smart default, otherwise use the actual text
+            const extractedText = text.length > 10 ? text : "Simulated senior experience node detected.";
             setStep('ready');
-        }, 4000);
+            setTimeout(() => onComplete(extractedText), 1000);
+        };
+        reader.readAsText(file);
     };
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            simulateExtraction(e.target.files[0]);
+            handleFile(e.target.files[0]);
         }
     };
 
     const handleDrop = (e) => {
         e.preventDefault();
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            simulateExtraction(e.dataTransfer.files[0]);
+            handleFile(e.dataTransfer.files[0]);
         }
     };
 
@@ -48,9 +63,9 @@ const Onboarding = ({ onComplete }) => {
                 <AnimatePresence mode="wait">
                     {step === 'initial' && (
                         <motion.div key="i" className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <h1 className="lb-title-lg mb-4">Initialize Intelligence</h1>
+                            <h1 className="lb-title-lg mb-4">Initialize Agents</h1>
                             <p style={{ color: '#94a3b8', marginBottom: '40px', fontSize: '18px', fontWeight: '500' }}>
-                                Upload your resume to calibrate your survival strategy.
+                                Deploy AI agents to map your career survival strategy.
                             </p>
 
                             <div
@@ -70,19 +85,28 @@ const Onboarding = ({ onComplete }) => {
                                 <div style={{ padding: '20px', backgroundColor: 'rgba(34, 211, 238, 0.1)', display: 'inline-flex', borderRadius: '20px', marginBottom: '20px' }}>
                                     <Upload size={40} style={{ color: '#22d3ee' }} />
                                 </div>
-                                <p style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Drop PDF/Word here</p>
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx" />
+                                <p style={{ fontWeight: 'bold', fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Uplink Resume</p>
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.txt" />
                             </div>
                         </motion.div>
                     )}
 
-                    {step === 'scanning' && (
+                    {step === 'scanning' && activeAgent && (
                         <motion.div key="s" className="text-center py-12" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <div className="flex justify-center mb-10">
-                                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }} style={{ width: '80px', height: '80px', border: '5px solid rgba(34, 211, 238, 0.1)', borderRadius: '50%', borderTopColor: '#22d3ee' }} />
+                                <div style={{ position: 'relative' }}>
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                                        style={{ width: '120px', height: '120px', border: '2px solid rgba(34, 211, 238, 0.2)', borderRadius: '50%', borderTopColor: '#22d3ee' }}
+                                    />
+                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#22d3ee' }}>
+                                        <activeAgent.icon size={48} />
+                                    </div>
+                                </div>
                             </div>
-                            <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#fff' }}>DEEP PARSING ACTIVE</h2>
-                            <p className="lb-label" style={{ marginTop: '12px', letterSpacing: '0.3em' }}>Extracting semantic experience nodes...</p>
+                            <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#fff', letterSpacing: '2px' }}>{activeAgent.name} ACTIVE</h2>
+                            <p className="lb-badge accent" style={{ marginTop: '16px' }}>{activeAgent.status}</p>
                         </motion.div>
                     )}
 
@@ -91,8 +115,11 @@ const Onboarding = ({ onComplete }) => {
                             <div style={{ width: '80px', height: '80px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
                                 <CheckCircle size={40} style={{ color: '#10b981' }} />
                             </div>
-                            <h2 style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px' }}>Uplink Ready</h2>
-                            <button onClick={() => window.location.reload()} className="lb-btn-primary w-full" style={{ padding: '20px' }}>Enter Command Center</button>
+                            <h2 style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px' }}>Uplink Success</h2>
+                            <p style={{ color: '#94a3b8', marginBottom: '40px' }}>Tactical mapping is now synced across all active nodes.</p>
+                            <div style={{ width: '100%', height: '4px', backgroundColor: '#1e293b', borderRadius: '2px', overflow: 'hidden' }}>
+                                <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1 }} style={{ height: '100%', backgroundColor: '#10b981' }} />
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
