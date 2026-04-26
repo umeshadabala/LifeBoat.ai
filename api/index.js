@@ -24,10 +24,29 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'active', node: 'LifeBoat_Alpha_1' });
 });
 
-// 404 Catch-All Handler
-app.use((req, res, next) => {
-    res.status(404).json({ error: 'Endpoint Not Found', path: req.url, originalUrl: req.originalUrl });
-});
+// Serve frontend in production
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    app.use(express.static(path.join(__dirname, '../dist')));
+    app.get('*', (req, res) => {
+        // Only serve index.html for non-API routes
+        if (!req.path.startsWith('/api/')) {
+            res.sendFile(path.join(__dirname, '../dist/index.html'));
+        } else {
+            res.status(404).json({ error: 'Endpoint Not Found', path: req.url });
+        }
+    });
+} else {
+    // 404 Catch-All Handler for API only
+    app.use('/api', (req, res, next) => {
+        res.status(404).json({ error: 'Endpoint Not Found', path: req.url, originalUrl: req.originalUrl });
+    });
+}
 
 // Global Error Handler
 app.use((err, req, res, next) => {
