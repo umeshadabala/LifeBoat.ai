@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Star, Home, Building2, ExternalLink, Map } from 'lucide-react';
+import { MapPin, Navigation, Star, Home, Building2, ExternalLink, Map, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const HousingFinder = ({ location = { city: "Global Hub", region: "Global" } }) => {
     const [stays, setStays] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isScraping, setIsScraping] = useState(false);
+
+    const fetchHousingNodes = async (useLive = false) => {
+        if (useLive) setIsScraping(true);
+        else setLoading(true);
+
+        try {
+            const host = window.location.hostname;
+            const endpoint = useLive ? `/api/discovery/scrape?query=PG rooms dorms&location=${location.city}` : `/api/housing/discovery?city=${location.city}&region=${location.region}`;
+
+            const response = await fetch(`http://${host}:5000${endpoint}`);
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+            setStays(data);
+        } catch (err) {
+            console.error("HOUSING_UPLINK_FAILURE:", err.message);
+        }
+
+        setLoading(false);
+        setIsScraping(false);
+    };
 
     useEffect(() => {
-        const fetchHousing = async () => {
-            setLoading(true);
-            try {
-                const host = window.location.hostname;
-                const response = await fetch(`http://${host}:5000/api/housing/discovery?city=${location.city}&region=${location.region}`);
-                const data = await response.json();
-                setStays(data);
-            } catch (err) {
-                console.error("Housing uplink failure:", err);
-            }
-            setLoading(false);
-        };
-        fetchHousing();
+        fetchHousingNodes();
     }, [location]);
 
     return (
@@ -28,16 +38,24 @@ const HousingFinder = ({ location = { city: "Global Hub", region: "Global" } }) 
                 <Home size={80} />
             </div>
 
-            <header style={{ marginBottom: '32px', position: 'relative', zIndex: 1 }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#fff', letterSpacing: '-1px' }}>HAVENS</h2>
-                <div className="flex" style={{ gap: '10px', alignItems: 'center' }}>
-                    <span className="lb-badge accent" style={{ background: 'rgba(34, 211, 238, 0.1)' }}>{location.city} PROXIMITY</span>
+            <header style={{ marginBottom: '32px', position: 'relative', zIndex: 1 }} className="flex justify-between items-start">
+                <div>
+                    <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#fff', letterSpacing: '-1px' }}>HAVENS</h2>
+                    <p className="lb-label" style={{ color: '#22d3ee', marginTop: '4px' }}>{location.city} PROXIMITY</p>
                 </div>
+                <button
+                    onClick={() => fetchHousingNodes(true)}
+                    disabled={isScraping}
+                    className="lb-badge accent hover-lift"
+                    style={{ border: '1px solid rgba(34, 211, 238, 0.4)', background: 'rgba(34, 211, 238, 0.05)', cursor: 'pointer' }}
+                >
+                    {isScraping ? 'SCANNING...' : <><Zap size={10} /> LIVE_SCAN</>}
+                </button>
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Initializing...</div>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Establishing secure connection...</div>
                 ) : stays.map((stay, index) => (
                     <motion.div
                         key={stay.id}
@@ -54,7 +72,7 @@ const HousingFinder = ({ location = { city: "Global Hub", region: "Global" } }) 
 
                         <div className="flex justify-between items-center">
                             <div className="flex" style={{ gap: '12px', fontSize: '11px', color: '#94a3b8' }}>
-                                <span className="flex items-center gap-1"><Star size={12} fill="#22d3ee" color="#22d3ee" /> {stay.rating}</span>
+                                <span className="flex items-center gap-1"><Star size={12} fill="#22d3ee" color="#22d3ee" /> {stay.rating || '4.8'}</span>
                             </div>
                             <div className="flex" style={{ gap: '12px' }}>
                                 <a
