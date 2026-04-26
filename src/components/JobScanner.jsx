@@ -1,124 +1,361 @@
-import React, { useState, useMemo } from 'react';
-import { Search, MapPin, DollarSign, ExternalLink, Zap, Globe } from 'lucide-react';
-import { jobs as localJobs } from '../data/jobs';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, MapPin, ExternalLink, Briefcase, RefreshCw, IndianRupee, Filter } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const JobScanner = () => {
-    const [search, setSearch] = useState('');
-    const [region, setRegion] = useState('All Locations');
-    const [role, setRole] = useState('All Roles');
-    const [visibleCount, setVisibleCount] = useState(12);
-    const [liveNodes, setLiveNodes] = useState([]);
-    const [isScraping, setIsScraping] = useState(false);
+const REGIONS = [
+    { label: 'India', value: 'India' },
+    { label: 'Remote', value: 'Remote' },
+    { label: 'USA', value: 'USA' },
+    { label: 'UK', value: 'UK' },
+    { label: 'Singapore', value: 'Singapore' },
+    { label: 'Canada', value: 'Canada' },
+    { label: 'Australia', value: 'Australia' },
+];
 
-    const locations = ['All Locations', 'India', 'USA', 'UK', 'Europe', 'Australia', 'Canada', 'Singapore', 'Remote'];
-    const roles = ['All Roles', 'Frontend', 'Backend', 'Fullstack', 'DevOps', 'Mobile', 'AI/ML', 'Product'];
+const JobScanner = ({ skills = [], primaryRole = '', candidateProfile = null, resumeText = '' }) => {
+    const [jobs, setJobs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [region, setRegion] = useState('India');
+    const [searchText, setSearchText] = useState('');
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(9);
+    const [error, setError] = useState('');
+    const [generatingResume, setGeneratingResume] = useState(null);
 
-    const triggerLiveScrape = async () => {
-        setIsScraping(true);
+    const handleGenerateResume = async (job) => {
+        if (!candidateProfile) {
+            alert('Please upload a resume first to use the ATS builder.');
+            return;
+        }
+        
+        setGeneratingResume(job.id);
         try {
             const host = window.location.hostname;
-            const response = await fetch(`http://${host}:5000/api/discovery/scrape?query=${search || 'Software Engineer'}&location=${region}`);
-            const data = await response.json();
-            setLiveNodes(data);
+            const res = await fetch(`http://${host}:5000/api/intelligence/resume-builder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resumeText,
+                    candidateProfile,
+                    jobTitle: job.title,
+                    jobCompany: job.company,
+                    jobDescription: job.description,
+                    jobUrl: job.url
+                })
+            });
+            
+            if (!res.ok) throw new Error('Failed to generate resume');
+            const data = await res.json();
+            
+            // Send the HTML back to server to serve it on a unique URL
+            const serveRes = await fetch(`http://${host}:5000/api/intelligence/resume-serve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ html: data.resumeHTML, id: job.id })
+            });
+            
+            if (!serveRes.ok) throw new Error('Failed to serve resume HTML');
+            const serveData = await serveRes.json();
+            
+            // Open the generated resume page
+            window.open(`http://${host}:5000${serveData.url}`, '_blank');
+            
         } catch (err) {
-            console.warn("DISCOVERY_UPLINK_FAILURE");
+            console.error('Resume builder error:', err);
+            alert('Failed to generate ATS resume. Please try again.');
+        } finally {
+            setGeneratingResume(null);
         }
-        setIsScraping(false);
     };
 
-    const allJobs = useMemo(() => {
-        // INTERNATIONAL FIRST SORTING
-        const joined = [...liveNodes, ...localJobs];
-        return joined.sort((a, b) => {
-            const aIsIntl = !a.location.includes('India') && !a.location.includes('Bangalore');
-            const bIsIntl = !b.location.includes('India') && !b.location.includes('Bangalore');
-            if (aIsIntl && !bIsIntl) return -1;
-            if (!aIsIntl && bIsIntl) return 1;
-            return b.match - a.match;
-        });
-    }, [liveNodes]);
+    const fetchJobs = useCallback(async (overrideSkills = null, overrideRegion = null) => {
+        setLoading(true);
+        setError('');
+        try {
+            const host = window.location.hostname;
+            const targetSkills = overrideSkills ?? skills;
+            const targetRegion = overrideRegion ?? region;
 
-    const filtered = useMemo(() => {
-        return allJobs.filter(j => {
-            const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
-                j.company.toLowerCase().includes(search.toLowerCase());
-            const matchesRegion = region === 'All Locations' || j.location.includes(region);
-            return matchesSearch && matchesRegion;
-        });
-    }, [search, region, allJobs]);
+            // Build query: prefer skills array, fall back to manual search text or primary role
+            let queryParam = '';
+            let skillsParam = '';
+
+            if (targetSkills.length > 0) {
+                skillsParam = `&skills=${encodeURIComponent(JSON.stringify(targetSkills.slice(0, 6)))}`;
+                queryParam = `&query=${encodeURIComponent(targetSkills.slice(0, 2).join(' '))}`;
+            } else {
+                const q = searchText.trim() || primaryRole || 'Software Engineer';
+                queryParam = `&query=${encodeURIComponent(q)}`;
+            }
+
+            const url = `http://${host}:5000/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Server error ${res.status}`);
+            const data = await res.json();
+            setJobs(Array.isArray(data) ? data : []);
+            setHasLoaded(true);
+            setVisibleCount(9);
+        } catch (err) {
+            console.error('Job fetch error:', err);
+            setError('Could not load jobs. Make sure the backend server is running.');
+            setJobs([]);
+        }
+        setLoading(false);
+    }, [skills, region, searchText, primaryRole]);
+
+    // Auto-fetch when skills or region change
+    useEffect(() => {
+        if (skills.length > 0 || primaryRole) {
+            fetchJobs();
+        }
+    }, [skills.join(','), region]);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchJobs(searchText ? [] : skills);
+    };
+
+    const displayed = jobs.slice(0, visibleCount);
 
     return (
-        <div className="flex flex-col gap-16">
-            <header className="flex justify-between items-end">
+        <div className="flex flex-col gap-8">
+            {/* Header */}
+            <div className="flex items-end justify-between">
                 <div>
-                    <h2 style={{ fontSize: '32px', fontWeight: '900', color: '#fff', letterSpacing: '-1.5px' }}>TACTICAL UPLINK</h2>
-                    <p className="lb-label" style={{ color: '#22d3ee' }}>Aggregating global career nodes.</p>
+                    <p className="lb-label mb-2">Live Discovery</p>
+                    <h2 style={{
+                        fontFamily: 'Outfit', fontSize: 28, fontWeight: 800,
+                        color: '#f1f5f9', letterSpacing: '-1px'
+                    }}>
+                        Job Opportunities
+                        <span style={{ color: '#38bdf8' }}> in {region}</span>
+                    </h2>
+                    {skills.length > 0 && (
+                        <p style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
+                            Matched to: {skills.slice(0, 5).join(', ')}{skills.length > 5 ? ` +${skills.length - 5} more` : ''}
+                        </p>
+                    )}
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <p className="lb-label">ACTIVE_FLIGHTS</p>
-                    <p style={{ color: '#22d3ee', fontWeight: '900', fontSize: '24px' }}>{filtered.length}</p>
+                    <p className="lb-label mb-1">Positions Found</p>
+                    <p style={{ fontFamily: 'Outfit', fontSize: 32, fontWeight: 800, color: '#38bdf8', lineHeight: 1 }}>
+                        {jobs.length}
+                    </p>
                 </div>
-            </header>
+            </div>
 
-            <div className="flex flex-col gap-8">
-                <div className="flex gap-4">
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <input
-                            type="text"
+            {/* Search + Filters */}
+            <form onSubmit={handleSearch} className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-3">
+                    {/* Country Filter */}
+                    <div className="relative flex-1" style={{ minWidth: 200 }}>
+                        <MapPin size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#38bdf8' }} />
+                        <select
                             className="lb-input"
-                            placeholder="Target role or international hub..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            style={{ paddingLeft: '64px', height: '70px', fontSize: '18px' }}
-                        />
-                        <Search style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: '#22d3ee' }} size={24} />
+                            value={region}
+                            onChange={e => setRegion(e.target.value)}
+                            style={{ paddingLeft: 44, height: 52, fontSize: 15, appearance: 'none', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        >
+                            {REGIONS.map(r => (
+                                <option key={r.value} value={r.value} style={{ background: '#0f172a' }}>{r.label}</option>
+                            ))}
+                        </select>
                     </div>
+
+                    {/* Skill / Role Filter */}
+                    <div className="relative flex-1" style={{ minWidth: 240 }}>
+                        <Filter size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#38bdf8' }} />
+                        <select
+                            className="lb-input"
+                            value={searchText}
+                            onChange={e => setSearchText(e.target.value)}
+                            style={{ paddingLeft: 44, height: 52, fontSize: 15, appearance: 'none', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        >
+                            <option value="" style={{ background: '#0f172a' }}>All Matched Roles & Skills</option>
+                            {primaryRole && <option value={primaryRole} style={{ background: '#0f172a' }}>Role: {primaryRole}</option>}
+                            {skills.map((skill, i) => (
+                                <option key={i} value={skill} style={{ background: '#0f172a' }}>Skill: {skill}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <button
-                        onClick={triggerLiveScrape}
-                        disabled={isScraping}
-                        className="lb-card hover-lift flex items-center justify-center gap-3"
-                        style={{ width: '220px', height: '70px', padding: 0, background: 'rgba(34, 211, 238, 0.05)', borderColor: 'rgba(34, 211, 238, 0.2)', color: '#22d3ee', fontWeight: '900' }}
+                        type="submit"
+                        className="lb-btn lb-btn-primary"
+                        disabled={loading}
+                        style={{ height: 52, minWidth: 120, flexShrink: 0 }}
                     >
-                        {isScraping ? 'SCANNING...' : <><Zap size={18} /> LIVE_FETCH</>}
+                        {loading ? (
+                            <><span className="lb-spinner" style={{ width: 16, height: 16 }} /> Searching</>
+                        ) : (
+                            <><Search size={16} /> Search</>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => fetchJobs()}
+                        className="lb-btn lb-btn-ghost"
+                        disabled={loading}
+                        style={{ height: 52, width: 52, padding: 0, flexShrink: 0 }}
+                        title="Refresh"
+                    >
+                        <RefreshCw size={17} />
                     </button>
                 </div>
+            </form>
 
-                <div className="flex gap-4">
-                    <select className="lb-input" style={{ width: '200px', height: '60px' }} value={region} onChange={(e) => setRegion(e.target.value)}>
-                        {locations.map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
+            {/* Error */}
+            {error && (
+                <div style={{
+                    padding: '14px 20px', borderRadius: 12, fontSize: 14,
+                    background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.18)',
+                    color: '#f87171', fontWeight: 500
+                }}>{error}</div>
+            )}
+
+            {/* Loading skeleton */}
+            {loading && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: 20
+                }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="lb-card" style={{ padding: 24, minHeight: 160 }}>
+                            <div style={{ height: 16, width: '70%', background: 'rgba(255,255,255,0.04)', borderRadius: 8, marginBottom: 10 }} className="lb-pulse" />
+                            <div style={{ height: 12, width: '45%', background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 20 }} className="lb-pulse" />
+                            <div style={{ height: 10, width: '35%', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }} className="lb-pulse" />
+                        </div>
+                    ))}
                 </div>
-            </div>
+            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '32px' }}>
-                {filtered.slice(0, visibleCount).map(job => (
-                    <div key={job.id} className="lb-card hover-lift" style={{ padding: '32px' }}>
-                        <div className="flex justify-between items-start mb-8">
-                            <div>
-                                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>{job.title}</h3>
-                                <p className="lb-label" style={{ color: '#22d3ee' }}>{job.company}</p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '11px', fontWeight: '900', color: '#10b981' }}>{job.match}% MATCH</div>
-                                <p style={{ fontSize: '9px', color: '#64748b', fontWeight: '900' }}>{job.source.toUpperCase()}</p>
-                            </div>
-                        </div>
+            {/* Empty state */}
+            {!loading && hasLoaded && jobs.length === 0 && (
+                <div className="lb-card text-center" style={{
+                    padding: '60px 40px',
+                    borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.01)'
+                }}>
+                    <Briefcase size={36} style={{ color: '#334155', margin: '0 auto 16px' }} />
+                    <p style={{ color: '#64748b', fontSize: 15 }}>No jobs found. Try a different region or search term.</p>
+                </div>
+            )}
 
-                        <div className="flex gap-6 mb-8" style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
-                            <span className="flex items-center gap-2"><MapPin size={14} /> {job.location}</span>
-                            <span className="flex items-center gap-2"><DollarSign size={14} /> {job.salary}</span>
-                        </div>
+            {/* Job Grid */}
+            {!loading && displayed.length > 0 && (
+                <>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: 20
+                    }}>
+                        <AnimatePresence>
+                            {displayed.map((job, idx) => (
+                                <motion.div
+                                    key={job.id}
+                                    className="lb-card hover-lift"
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.03 }}
+                                    style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}
+                                >
+                                    {/* Title + Match */}
+                                    <div className="flex justify-between items-start gap-3">
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 className="truncate" style={{
+                                                fontSize: 15, fontWeight: 700,
+                                                color: '#f1f5f9', marginBottom: 4
+                                            }}>{job.title}</h3>
+                                            <p style={{ fontSize: 13, color: '#38bdf8', fontWeight: 600 }}>{job.company}</p>
+                                        </div>
+                                        <div style={{
+                                            flexShrink: 0, textAlign: 'right',
+                                            background: `rgba(${job.match > 90 ? '52,211,153' : '56,189,248'},0.08)`,
+                                            border: `1px solid rgba(${job.match > 90 ? '52,211,153' : '56,189,248'},0.2)`,
+                                            borderRadius: 10, padding: '6px 10px'
+                                        }}>
+                                            <p style={{
+                                                fontSize: 16, fontWeight: 800, lineHeight: 1,
+                                                color: job.match > 90 ? '#34d399' : '#38bdf8'
+                                            }}>{job.match}%</p>
+                                            <p style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.5px', marginTop: 2 }}>MATCH</p>
+                                        </div>
+                                    </div>
 
-                        <div className="flex justify-between items-center pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                            <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', width: '100%' }}>
-                                <button className="lb-input" style={{ background: '#fff', color: '#020617', fontWeight: '900', padding: '14px', cursor: 'pointer', border: 'none' }}>
-                                    APPLY_NODE <ExternalLink size={14} style={{ marginLeft: '8px' }} />
-                                </button>
-                            </a>
-                        </div>
+                                    {/* Meta */}
+                                    <div className="flex flex-wrap gap-3" style={{ fontSize: 12, color: '#64748b' }}>
+                                        <span className="flex items-center gap-1">
+                                            <MapPin size={12} style={{ color: '#38bdf8' }} />
+                                            {job.location}
+                                        </span>
+                                        {job.salary && job.salary !== 'Competitive' && (
+                                            <span className="flex items-center gap-1" style={{ color: '#34d399', fontWeight: 600 }}>
+                                                <IndianRupee size={11} />
+                                                {job.salary.replace('₹', '')}
+                                            </span>
+                                        )}
+                                        {job.salary === 'Competitive' && (
+                                            <span style={{ color: '#475569' }}>Competitive</span>
+                                        )}
+                                    </div>
+
+                                    {/* Description snippet */}
+                                    {job.description && (
+                                        <p style={{
+                                            fontSize: 12, color: '#475569', lineHeight: 1.6,
+                                            display: '-webkit-box', WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                                        }}>{job.description}</p>
+                                    )}
+
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between pt-3" style={{
+                                        borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 'auto'
+                                    }}>
+                                        <span style={{
+                                            fontSize: 10, fontWeight: 700, letterSpacing: '0.5px',
+                                            color: '#334155', textTransform: 'uppercase'
+                                        }}>{job.source?.replace('_', ' ')}</span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleGenerateResume(job)}
+                                                disabled={generatingResume === job.id}
+                                                className="lb-btn"
+                                                style={{ height: 36, padding: '0 12px', fontSize: 12, background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }}
+                                            >
+                                                {generatingResume === job.id ? 'Building...' : 'ATS Resume'}
+                                            </button>
+                                            <a
+                                                href={job.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="lb-btn lb-btn-ghost"
+                                                style={{ height: 36, padding: '0 16px', fontSize: 13 }}
+                                            >
+                                                Apply <ExternalLink size={13} />
+                                            </a>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
-                ))}
-            </div>
+
+                    {/* Load more */}
+                    {visibleCount < jobs.length && (
+                        <div className="text-center">
+                            <button
+                                className="lb-btn lb-btn-ghost"
+                                onClick={() => setVisibleCount(v => v + 9)}
+                                style={{ padding: '12px 32px', fontSize: 14 }}
+                            >
+                                Load more ({jobs.length - visibleCount} remaining)
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 };

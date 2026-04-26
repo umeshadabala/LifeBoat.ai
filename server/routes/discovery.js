@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
+import axios from 'axios';
 const router = express.Router();
-const axios = require('axios');
 
 router.get('/scrape', async (req, res) => {
     const { query, location } = req.query;
@@ -41,4 +41,4 @@ router.get('/scrape', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

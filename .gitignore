@@ -1,1 +1,5 @@
-node_modules\n.env\ndist\n.vscode\n.DS_Store
+node_modules
+.env
+dist
+.vscode
+.DS_Store
