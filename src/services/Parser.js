@@ -1,48 +1,59 @@
 /**
- * Truly Generic Intelligence Engine
+ * Truly Generic Intelligence Engine - EXTREME SANITIZATION v2
  * Extracts skills based on linguistic patterns and frequency.
- * SANITIZED: Excludes PDF metadata and common non-skill capitalized words.
+ * Designed to OBLITERATE PDF metadata junk.
  */
 
 export const extractIntelligence = (text = "") => {
     if (!text || text.length < 30) return { skills: [], resilience: 0, strengthLabel: 'NULL' };
 
-    // 1. Identify "Candidate Skills" using Regex (Capitalized words or common tech patterns like Node.js)
-    const skillPattern = /\b([A-Z][a-zA-Z0-9\+#\.]+(?:\.[a-z]+)?)\b/g;
-    const matches = text.match(skillPattern) || [];
+    // 1. OBLITERATE PDF METADATA BLOCKS (Orbital Strike)
+    const sanitizedText = text
+        .replace(/\/([a-zA-Z0-9]+)/g, ' ')               // Remove /Type, /Filter, etc.
+        .replace(/<<[\s\S]*?>>/g, ' ')                   // Remove PDF dictionaries
+        .replace(/\[\d+\s+\d+\s+R\]/g, ' ')              // Remove PDF references
+        .replace(/\b[0-9a-fA-F]{32,}\b/g, ' ')           // Remove long hex strings
+        .replace(/\b[0-9]+\s+[0-9]+\s+obj\b/gi, ' ')     // Remove object markers
+        .replace(/endobj|stream|endstream|xref/gi, ' '); // Remove stream markers
 
-    // 2. Strict Blacklist for PDF metadata and common filler
+    // 2. Identify "Candidate Skills" with high selectivity
+    const skillPattern = /\b([A-Z][a-zA-Z0-9\+#\.]+(?:\.[a-z]+)?)\b/g;
+    const rawMatches = sanitizedText.match(skillPattern) || [];
+
+    // 3. Maximum-Security Blacklist (Includes user-reported 404/junk keys)
     const blacklist = [
-        'Length', 'Filter', 'FlateDecode', 'Type', 'Stream', 'Obj', 'Endobj', 'Startxref', 'EOF',
-        'ExtGState', 'Font', 'ProcSet', 'XObject', 'MediaBox', 'Contents', 'Metadata', 'Parent',
-        'Resources', 'Annots', 'BBox', 'Matrix', 'Subtype', 'Width', 'Height', 'The', 'And',
-        'For', 'With', 'From', 'This', 'That', 'Work', 'Job', 'Experience', 'University',
-        'Education', 'May', 'June', 'July', 'August', 'Project', 'Skills', 'Email', 'Phone',
-        'Address', 'Profile', 'Abstract', 'References', 'Conclusion', 'Introduction', 'Total',
-        'Page', 'Table', 'Figure', 'Section', 'Chapter', 'Volume'
+        'Length', 'Length1', 'Length2', 'Length3', 'Filter', 'FlateDecode', 'Type', 'Stream',
+        'Obj', 'Endobj', 'Startxref', 'EOF', 'DecodeParms', 'Columns', 'Predictor', 'Size',
+        'XRef', 'Index', 'Prev', 'Root', 'Info', 'ID', 'Encrypt', 'BitsPerComponent',
+        'Colors', 'ExtGState', 'Font', 'ProcSet', 'XObject', 'ColorSpace', 'MediaBox',
+        'Contents', 'Metadata', 'Parent', 'Resources', 'Annots', 'BBox', 'Matrix',
+        'Subtype', 'Width', 'Height', 'The', 'And', 'For', 'With', 'From', 'This',
+        'That', 'Experience', 'University', 'Education', 'Profile', 'Abstract',
+        'References', 'Conclusion', 'Introduction', 'Volume', 'Page', 'Table', 'Figure'
     ];
 
-    // 3. Filter matches: Must be capitalized, not in blacklist, and looks like a "Node"
-    const potentialSkills = matches.filter(m => {
+    // 4. Heuristic Skill Validation
+    const potentialSkills = rawMatches.filter(m => {
         return !blacklist.includes(m) &&
             m.length > 2 &&
-            m.length < 20 &&
+            m.length < 22 &&
             /^[A-Z]/.test(m) &&
+            /[a-z]/.test(m) && // Must have at least one lowercase (Real tech: React, Node, SQL)
             !/^[0-9]/.test(m);
     });
 
-    // 4. Calculate Frequency
+    // 5. Calculate Frequency
     const freqMap = {};
     potentialSkills.forEach(s => {
         freqMap[s] = (freqMap[s] || 0) + 1;
     });
 
-    // 5. Sort and Take Top 8
+    // 6. Sort and Extract Top 8
     const extracted = Object.entries(freqMap)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
         .map(([name, freq]) => {
-            const hasSenior = text.toLowerCase().includes('senior') || text.toLowerCase().includes('lead');
+            const hasSenior = sanitizedText.toLowerCase().includes('senior') || sanitizedText.toLowerCase().includes('lead');
             let level = 40 + (freq * 10);
             if (hasSenior) level += 15;
             const finalLevel = Math.min(level, 98);
@@ -55,7 +66,7 @@ export const extractIntelligence = (text = "") => {
             return { name, level: finalLevel, strength };
         });
 
-    // 6. Global Resilience
+    // 7. Dynamic Resilience
     const resilience = Math.min(50 + (extracted.length * 6), 100);
 
     return {
