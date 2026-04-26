@@ -11,7 +11,8 @@ const HousingFinder = ({ location = { city: 'Bangalore', region: 'India' } }) =>
         setLoading(true);
         setError('');
         try {
-            const url = `/api/housing/discovery?city=${encodeURIComponent(location.city)}&region=${encodeURIComponent(location.region)}&budget=20000`;
+            const API_BASE = import.meta.env.VITE_API_URL || '';
+            const url = `${API_BASE.replace(/\/$/, '')}/api/housing/discovery?city=${encodeURIComponent(location.city)}&region=${encodeURIComponent(location.region)}&budget=20000`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();

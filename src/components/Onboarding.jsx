@@ -38,7 +38,8 @@ const Onboarding = ({ onComplete }) => {
         if (userName.trim()) formData.append('name', userName.trim());
 
         try {
-            const response = await fetch(`/api/intelligence/parse`, {
+            const API_BASE = import.meta.env.VITE_API_URL || '';
+            const response = await fetch(`${API_BASE.replace(/\/$/, '')}/api/intelligence/parse`, {
                 method: 'POST',
                 body: formData
             });

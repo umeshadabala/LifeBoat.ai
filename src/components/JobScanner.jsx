@@ -40,7 +40,8 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
                 queryParam = `&query=${encodeURIComponent(q)}`;
             }
 
-            const url = `/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
+            const API_BASE = import.meta.env.VITE_API_URL || '';
+            const url = `${API_BASE.replace(/\/$/, '')}/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Server error ${res.status}`);
             const data = await res.json();
