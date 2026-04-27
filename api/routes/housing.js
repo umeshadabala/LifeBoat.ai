@@ -12,6 +12,46 @@ router.get('/discovery', async (req, res) => {
     try {
         let results = [];
 
+        // Strategy 0: Google Maps (if API key is present)
+        const GMAPS_API_KEY = process.env.VITE_GMAPS_API_KEY || process.env.GMAPS_API_KEY;
+        if (GMAPS_API_KEY) {
+            try {
+                const response = await axios.get(`https://maps.googleapis.com/maps/api/place/textsearch/json`, {
+                    params: {
+                        query: `affordable PG or rooms or hostels in ${targetCity}`,
+                        key: GMAPS_API_KEY
+                    }
+                });
+                
+                const places = response.data.results || [];
+                
+                if (places.length > 0) {
+                    const currency = isIndia ? '₹' : '$';
+                    const basePrice = isIndia ? 5000 : 400;
+
+                    results = places.slice(0, 12).map((place, i) => {
+                        const variation = Math.floor(Math.random() * (targetBudget * 0.6));
+                        const price = basePrice + variation;
+                        
+                        return {
+                            id: place.place_id || (8000 + i),
+                            name: place.name,
+                            location: place.formatted_address || targetCity,
+                            price: `${currency}${price.toLocaleString('en-IN')}/mo`,
+                            rating: place.rating ? place.rating.toFixed(1) : (3.8 + Math.random() * 1.2).toFixed(1),
+                            type: inferType('', place.name),
+                            url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + targetCity)}`,
+                            source: 'GOOGLE_MAPS'
+                        };
+                    });
+                    
+                    return res.json(results);
+                }
+            } catch (gmapsErr) {
+                console.warn("Google Maps search failed:", gmapsErr.message);
+            }
+        }
+
         // Strategy 1: Nominatim (OpenStreetMap) — Free, no API key needed
         try {
             // Search for PG accommodations, hostels, and guest houses

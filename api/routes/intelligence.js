@@ -23,8 +23,8 @@ router.post('/parse', upload.single('resume'), async (req, res) => {
     let text = req.body.text || '';
     let userName = req.body.name || '';
 
-    const API_KEY = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
-    const MODEL = process.env.OPENROUTER_MODEL || process.env.VITE_OPENROUTER_MODEL || 'google/gemma-3-27b-it:free';
+    const API_KEY = process.env.OPENROUTER_API_KEY;
+    const MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it:free';
 
     // Extract text from uploaded file
     if (req.file) {

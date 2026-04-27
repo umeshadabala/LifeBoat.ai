@@ -113,32 +113,28 @@ function App() {
                         transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
                         className="flex flex-col gap-12"
                     >
-                        {/* Row 1: Financial + Profile */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-                            gap: 32
-                        }}>
-                            <FinancialHub />
-                            <ResumeSkillBox
-                                resumeText={resumeText}
-                                externalIntelligence={intelligence}
-                            />
-                        </div>
-
-                        {/* Row 2: Jobs + Housing */}
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'minmax(0, 1fr) 360px',
+                            gridTemplateColumns: '380px minmax(0, 1fr)',
                             gap: 32,
                             alignItems: 'start'
                         }}>
-                            <JobScanner
-                                skills={skillsForJobs}
-                                primaryRole={intelligence?.primary_role}
-                            />
-                            <div style={{ position: 'sticky', top: 96 }}>
+                            {/* Left Column (Sidebar) */}
+                            <div className="flex flex-col gap-10" style={{ position: 'sticky', top: 96 }}>
+                                <FinancialHub />
                                 <HousingFinder location={location} />
+                            </div>
+
+                            {/* Right Column (Main) */}
+                            <div className="flex flex-col gap-10">
+                                <ResumeSkillBox
+                                    resumeText={resumeText}
+                                    externalIntelligence={intelligence}
+                                />
+                                <JobScanner
+                                    skills={skillsForJobs}
+                                    primaryRole={intelligence?.primary_role}
+                                />
                             </div>
                         </div>
                     </motion.div>

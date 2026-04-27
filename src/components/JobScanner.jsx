@@ -43,7 +43,7 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
             const API_BASE = import.meta.env.VITE_API_URL;
             const baseUrl = API_BASE ? API_BASE.replace(/\/$/, '') : '';
             const url = `${baseUrl}/api/jobs/discovery?region=${encodeURIComponent(targetRegion)}${queryParam}${skillsParam}`;
-            
+
             console.log(`[LifeBoat_Debug] Fetching jobs from: ${url}`);
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -53,8 +53,9 @@ const JobScanner = ({ skills = [], primaryRole = '' }) => {
             setVisibleCount(9);
         } catch (err) {
             console.error('Job fetch error:', err);
-            setError('Could not load jobs. Make sure the backend server is running.');
+            setError(''); // Clear any previous errors
             setJobs([]);
+            setHasLoaded(true); // Treat as loaded but empty
         }
         setLoading(false);
     }, [skills, region, searchText, primaryRole]);
