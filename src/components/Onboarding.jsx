@@ -1,16 +1,33 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, CheckCircle, Brain, Database, Network, Zap, Globe } from 'lucide-react';
+import { Upload, CheckCircle, Brain, Database, Network, Zap, Globe, Key, HelpCircle, Eye, EyeOff } from 'lucide-react';
+import ApiKeyGuide from './ApiKeyGuide';
 
 const Onboarding = ({ onComplete }) => {
     const [step, setStep] = useState('initial');
     const [activeAgentIdx, setActiveAgentIdx] = useState(0);
     const [userName, setUserName] = useState('');
+    const [apiKey, setApiKey] = useState('');
+    const [showKey, setShowKey] = useState(false);
+    const [showGuide, setShowGuide] = useState(false);
     const [error, setError] = useState('');
     const fileInputRef = useRef(null);
 
+    // Load saved API key from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('lb_openrouter_key');
+        if (saved) setApiKey(saved);
+    }, []);
+
+    // Save API key to localStorage when changed
+    useEffect(() => {
+        if (apiKey.trim()) {
+            localStorage.setItem('lb_openrouter_key', apiKey.trim());
+        }
+    }, [apiKey]);
+
     const features = [
-        { icon: Brain, label: 'AI Resume Analysis', desc: 'Deep extraction of your skills, experience, and career trajectory using Claude AI.' },
+        { icon: Brain, label: 'AI Resume Analysis', desc: 'Deep extraction of your skills, experience, and career trajectory using AI.' },
         { icon: Globe, label: 'India Job Discovery', desc: 'Real-time job listings matched to your exact skill set, based in India.' },
         { icon: Zap, label: 'Financial Runway', desc: 'Calculate your survival runway and plan strategically with precision.' },
     ];
@@ -36,6 +53,7 @@ const Onboarding = ({ onComplete }) => {
         const formData = new FormData();
         formData.append('resume', file);
         if (userName.trim()) formData.append('name', userName.trim());
+        if (apiKey.trim()) formData.append('apiKey', apiKey.trim());
 
         try {
             const API_BASE = import.meta.env.VITE_API_URL;
@@ -64,6 +82,11 @@ const Onboarding = ({ onComplete }) => {
     };
 
     const activeAgent = agents[activeAgentIdx];
+
+    // Show guide page
+    if (showGuide) {
+        return <ApiKeyGuide onBack={() => setShowGuide(false)} />;
+    }
 
     return (
         <motion.div
@@ -127,7 +150,7 @@ const Onboarding = ({ onComplete }) => {
                             </div>
 
                             {/* Name input */}
-                            <div className="flex flex-col items-center gap-3 mb-8" style={{ maxWidth: 440, margin: '0 auto 32px' }}>
+                            <div className="flex flex-col items-center gap-3 mb-8" style={{ maxWidth: 440, margin: '0 auto 24px' }}>
                                 <label className="lb-label" style={{ alignSelf: 'flex-start' }}>Your Name (optional)</label>
                                 <input
                                     type="text"
@@ -137,6 +160,51 @@ const Onboarding = ({ onComplete }) => {
                                     placeholder="Enter your full name"
                                     style={{ textAlign: 'center', fontSize: 16 }}
                                 />
+                            </div>
+
+                            {/* API Key input */}
+                            <div className="flex flex-col items-center gap-3" style={{ maxWidth: 440, margin: '0 auto 16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                    <label className="lb-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Key size={13} /> OpenRouter API Key (optional)
+                                    </label>
+                                    <button
+                                        onClick={() => setShowGuide(true)}
+                                        style={{
+                                            background: 'none', border: 'none', cursor: 'pointer',
+                                            color: '#38bdf8', fontSize: 12, fontWeight: 600,
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                            fontFamily: 'Outfit'
+                                        }}
+                                    >
+                                        <HelpCircle size={13} /> How to get a key?
+                                    </button>
+                                </div>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                    <input
+                                        type={showKey ? 'text' : 'password'}
+                                        className="lb-input"
+                                        value={apiKey}
+                                        onChange={e => setApiKey(e.target.value)}
+                                        placeholder="sk-or-v1-..."
+                                        style={{ textAlign: 'center', fontSize: 14, paddingRight: 44, fontFamily: 'monospace' }}
+                                    />
+                                    <button
+                                        onClick={() => setShowKey(!showKey)}
+                                        style={{
+                                            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                                            background: 'none', border: 'none', cursor: 'pointer', color: '#64748b',
+                                            display: 'flex', alignItems: 'center'
+                                        }}
+                                    >
+                                        {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                <p style={{ color: '#475569', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
+                                    {apiKey.trim()
+                                        ? '✓ Your key will be used for better AI analysis'
+                                        : 'Without a key, a free model will be used (may be rate-limited)'}
+                                </p>
                             </div>
 
                             {/* Error message */}
@@ -163,7 +231,8 @@ const Onboarding = ({ onComplete }) => {
                                     background: 'rgba(56,189,248,0.025)',
                                     borderColor: 'rgba(56,189,248,0.18)',
                                     borderStyle: 'dashed',
-                                    borderWidth: 1
+                                    borderWidth: 1,
+                                    marginTop: 24
                                 }}
                             >
                                 <div style={{

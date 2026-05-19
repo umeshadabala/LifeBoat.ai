@@ -18,13 +18,25 @@ async function extractPdfText(buffer) {
     return result.text || '';
 }
 
+const FREE_MODELS = [
+    'deepseek/deepseek-v4-flash:free',
+    'nvidia/nemotron-3-nano-30b-a3b:free',
+    'google/gemma-4-31b-it:free',
+    'google/gemma-4-26b-a4b-it:free',
+    'qwen/qwen3-coder:free',
+    'openai/gpt-oss-20b:free',
+];
+
 // ─── Resume Parse Endpoint ─────────────────────────────────────────────
 router.post('/parse', upload.single('resume'), async (req, res) => {
     let text = req.body.text || '';
     let userName = req.body.name || '';
 
-    const API_KEY = process.env.OPENROUTER_API_KEY;
-    const MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it:free';
+    // Accept user-provided API key, fall back to server env
+    const userApiKey = req.body.apiKey || '';
+    const API_KEY = userApiKey || process.env.OPENROUTER_API_KEY;
+    const useUserModel = userApiKey && req.body.model;
+    const modelsToTry = useUserModel ? [req.body.model] : FREE_MODELS;
 
     // Extract text from uploaded file
     if (req.file) {
@@ -56,7 +68,7 @@ router.post('/parse', upload.single('resume'), async (req, res) => {
     }
 
     if (!API_KEY) {
-        return res.status(401).json({ error: "OPENROUTER_API_KEY not configured." });
+        return res.status(401).json({ error: "No API key available. Please provide your OpenRouter API key." });
     }
 
     try {
@@ -97,38 +109,73 @@ Important:
 Resume Text:
 ${text.substring(0, 6000)}`;
 
-        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: MODEL,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.2,
-            max_tokens: 1000
-        }, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://lifeboatai.app',
-                'X-Title': 'LifeBoat.ai'
-            },
-            timeout: 45000
-        });
+        let lastError = null;
 
-        const content = response.data.choices[0].message.content;
-        const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("No JSON in AI response");
+        for (const model of modelsToTry) {
+            try {
+                console.log(`[Intelligence] Trying model: ${model}`);
+                const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                    model,
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.2,
+                    max_tokens: 1000
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'https://lifeboatai.app',
+                        'X-Title': 'LifeBoat.ai'
+                    },
+                    timeout: 45000
+                });
 
-        const parsed = JSON.parse(jsonMatch[0]);
+                if (response.data?.error) {
+                    throw new Error(response.data.error.message || "OpenRouter inline error");
+                }
 
-        if (userName && userName.trim()) parsed.name = userName.trim();
+                const choices = response.data?.choices;
+                if (!choices || choices.length === 0) {
+                    throw new Error("No choices returned from OpenRouter");
+                }
 
-        if (!parsed.skills || parsed.skills.length === 0) {
-            parsed.skills = (parsed.technical_skills || []).map(s => typeof s === 'string' ? s : (s.name || s));
+                const content = choices[0]?.message?.content;
+                if (!content) {
+                    throw new Error("Empty or null content returned from OpenRouter");
+                }
+
+                const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) throw new Error("No JSON in AI response");
+
+                const parsed = JSON.parse(jsonMatch[0]);
+
+                if (userName && userName.trim()) parsed.name = userName.trim();
+
+                if (!parsed.skills || parsed.skills.length === 0) {
+                    parsed.skills = (parsed.technical_skills || []).map(s => typeof s === 'string' ? s : (s.name || s));
+                }
+
+                console.log(`[Intelligence] Success with model: ${model}`);
+                return res.json({ ...parsed, extractedText: text.substring(0, 5000) });
+
+            } catch (err) {
+                const code = err.response?.status || err.response?.data?.error?.code || err.status;
+                console.warn(`[Intelligence] Model ${model} failed (${code}): ${err.response?.data?.error?.message || err.message}`);
+                lastError = err;
+                // Only break the fallback chain if it's an authorization/authentication issue (401)
+                if (code === 401) {
+                    console.error(`[Intelligence] Authorization failed, aborting fallbacks.`);
+                    break;
+                }
+            }
         }
 
-        res.json({ ...parsed, extractedText: text.substring(0, 5000) });
+        console.error("Intelligence parse error: all models failed.", lastError?.response?.data || lastError?.message);
+        const detail = lastError?.response?.data?.error?.message || lastError?.message;
+        res.status(500).json({ error: "AI analysis failed. All models are currently rate-limited. Please try again in a minute or provide your own API key.", detail });
 
     } catch (error) {
-        console.error("Intelligence parse error:", error.response?.data || error.message);
+        console.error("Intelligence unexpected error:", error.message);
         res.status(500).json({ error: "AI analysis failed.", detail: error.message });
     }
 });
